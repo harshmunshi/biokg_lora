@@ -189,19 +189,24 @@ biokg_answer = generate(question, model="biokg-lora-llama-3-8B")
 
 ### Training Strategy
 
-**3-Stage Approach**:
+**4-Stage Self-Contained Pipeline**:
 
-1. **Stage 1: KG Embedding Pre-training** (reuse from GraphPath-VLM)
-   - Already have RotatE embeddings trained
-   - Input: Biological KG triples
-   - Output: Entity embeddings (256-dim)
+1. **Stage 0: KG Construction** (1-2 days, CPU)
+   - Download biological databases (MGI, GO, KEGG, STRING, MPO, GTEx)
+   - Build unified knowledge graph
+   - Output: 87K entities, 1.5M triples
 
-2. **Stage 2: Entity Augmentation Layer**
+2. **Stage 1: RotatE Embedding Training** (2-3 days, 1 GPU)
+   - Train RotatE from scratch via link prediction
+   - Self-adversarial negative sampling
+   - Output: 256-dim entity embeddings
+
+3. **Stage 2: Projection Layer Training** (2 hours, 1 GPU)
    - Learn projection: KG embedding → LLM embedding space
-   - Freeze LLM, train only projection
-   - Loss: Alignment loss between text and KG embeddings
+   - Contrastive learning to align with LLM
+   - Output: Projection weights (256 → 4096)
 
-3. **Stage 3: LoRA Fine-tuning**
+4. **Stage 3: LoRA Fine-tuning** (4-6 hours, 1 GPU)
    - Freeze base LLM
    - Train LoRA adapters (rank 32)
    - Train projection layer
