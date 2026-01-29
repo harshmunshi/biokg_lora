@@ -1,0 +1,93 @@
+[project]
+name = "biokg-lora"
+version = "0.1.0"
+description = "Knowledge Graph Enhanced LLMs for Clinical Reasoning"
+authors = [
+    {name = "Pragya Research Team"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+dependencies = [
+    # Core ML
+    "torch>=2.1.0",
+    "transformers>=4.36.0",
+    "peft>=0.7.0",  # LoRA
+    "accelerate>=0.25.0",
+    "bitsandbytes>=0.41.0",  # QLoRA
+    
+    # Knowledge Graph
+    "torch-geometric>=2.4.0",
+    "torch-scatter>=2.1.2",
+    "torch-sparse>=0.6.18",
+    "networkx>=3.2",
+    
+    # Data Processing
+    "pandas>=2.1.0",
+    "numpy>=1.24.0",
+    "scipy>=1.11.0",
+    "scikit-learn>=1.3.0",
+    
+    # Biomedical Data
+    "bioservices>=1.11.2",
+    "obonet>=1.0.0",
+    "pronto>=2.5.0",
+    
+    # NLP
+    "spacy>=3.7.0",
+    "scispacy>=0.5.3",
+    "sentencepiece>=0.1.99",
+    
+    # Visualization
+    "matplotlib>=3.8.0",
+    "seaborn>=0.13.0",
+    "plotly>=5.18.0",
+    "pyvis>=0.3.2",
+    
+    # Configuration
+    "omegaconf>=2.3.0",
+    "hydra-core>=1.3.0",
+    "pyyaml>=6.0",
+    
+    # Utilities
+    "tqdm>=4.66.0",
+    "rich>=13.7.0",
+    "tensorboard>=2.15.0",
+    "wandb>=0.16.0",
+    
+    # Testing
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.12.0",
+    "isort>=5.13.0",
+    "mypy>=1.7.0",
+    "pylint>=3.0.0",
+]
+
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.5.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
