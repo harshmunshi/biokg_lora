@@ -1,0 +1,46 @@
+# Don't copy these into Docker image
+.git/
+.gitignore
+.gitattributes
+*.md
+docs/
+
+# Data (will be mounted as volume)
+data/
+checkpoints/
+logs/
+outputs/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary files
+*.log
+*.tmp
+.ipynb_checkpoints/

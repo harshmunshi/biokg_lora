@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  train-rotate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: biokg-lora:latest
+    container_name: biokg-lora-train
+    
+    # GPU configuration
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    
+    # Volume mounts - data and checkpoints
+    volumes:
+      - ./data:/workspace/data:ro  # Read-only data
+      - ./checkpoints:/workspace/checkpoints:rw  # Read-write checkpoints
+      - ./logs:/workspace/logs:rw  # Logs directory
+    
+    # Environment variables
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+      - WANDB_MODE=offline  # Set to 'online' if you want W&B logging
+    
+    # Keep container running and show logs
+    stdin_open: true
+    tty: true
+    
+    # Command to run
+    command: >
+      python scripts/stage1_train_rotate.py
+      --kg_path data/kg/biological_kg.pt
+      --entity2id_path data/kg/entity2id.json
+      --output_dir checkpoints/stage1
+      --num_epochs 500
+      --batch_size 1024
+      --embedding_dim 256
+      --learning_rate 0.0001
