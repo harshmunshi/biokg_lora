@@ -14,7 +14,17 @@ cd biokg_lora
 # (rsync, scp, or other method - data not in git)
 ```
 
-### 2. Run Training
+### 2. Verify Data is Present
+
+```bash
+# Check that data files exist on host
+ls -lh data/kg/biological_kg.pt
+ls -lh data/kg/entity2id.json
+
+# Should show file sizes (e.g., 109M for biological_kg.pt)
+```
+
+### 3. Run Training
 
 ```bash
 # Easy method - use helper script
@@ -22,6 +32,22 @@ cd biokg_lora
 
 # Manual method
 docker-compose up
+```
+
+### Debug: Check Data Inside Container
+
+If training hangs after "Training for X epochs...", verify data is mounted:
+
+```bash
+# Start container without auto-running training
+docker-compose run --rm train-rotate bash
+
+# Inside container, check data:
+ls -lh data/kg/
+cat data/kg/biological_kg.pt | head -c 100  # Should show binary data
+
+# If files are missing or empty, exit and check host data folder
+exit
 ```
 
 ## Prerequisites
@@ -80,6 +106,21 @@ curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.li
   sudo tee /etc/apt/sources.list.d/nvidia-docker.list
 sudo apt-get update && sudo apt-get install -y nvidia-docker2
 sudo systemctl restart docker
+```
+
+### Training Hangs After "Training for X epochs..."
+
+This happens when DataLoader workers run out of shared memory. The fix is already in `docker-compose.yml`:
+
+```yaml
+shm_size: '2gb'  # Shared memory for workers
+```
+
+If it still hangs, set `num_workers` to 0 (slower but safe):
+```yaml
+command: >
+  python scripts/stage1_train_rotate.py
+  --num_workers 0  # Disable multiprocessing
 ```
 
 ### Out of Memory

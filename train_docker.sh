@@ -31,7 +31,14 @@ if [ ! -f "data/kg/biological_kg.pt" ]; then
     exit 1
 fi
 
-echo "✅ Data files found"
+if [ ! -f "data/kg/entity2id.json" ]; then
+    echo "❌ entity2id.json not found in data/kg/"
+    echo "   Required files: biological_kg.pt, entity2id.json"
+    exit 1
+fi
+
+echo "✅ Data files found:"
+ls -lh data/kg/biological_kg.pt data/kg/entity2id.json | awk '{print "   - " $9 ": " $5}'
 echo ""
 
 # Create necessary directories
