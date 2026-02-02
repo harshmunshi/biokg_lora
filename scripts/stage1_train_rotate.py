@@ -151,7 +151,6 @@ def train(args):
         mode='min',
         factor=0.5,
         patience=5,
-        verbose=True,
     )
     
     # Training loop
@@ -236,7 +235,7 @@ def train(args):
     # Save final embeddings
     logger.info("\nExtracting and saving embeddings...")
     
-    checkpoint = torch.load(output_dir / "rotate_best.pt")
+    checkpoint = torch.load(output_dir / "rotate_best.pt", weights_only=False)
     entity_embeddings = checkpoint["entity_embeddings"]
     relation_embeddings = checkpoint["relation_embeddings"]
     

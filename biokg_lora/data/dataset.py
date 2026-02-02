@@ -11,10 +11,24 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from torch_geometric.data import Data
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Simple Data class (same as kg_builder for consistency, avoids PyG dependency)
+class Data:
+    """Simple data container for knowledge graph"""
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+    
+    @property
+    def num_nodes(self):
+        if hasattr(self, 'x') and self.x is not None:
+            return self.x.size(0)
+        elif hasattr(self, 'edge_index') and self.edge_index is not None:
+            return int(self.edge_index.max()) + 1
+        return 0
 
 
 class KGDataset(Dataset):
@@ -48,8 +62,8 @@ class KGDataset(Dataset):
         self.split = split
         self.neg_sample_size = neg_sample_size
         
-        # Load KG
-        self.kg_data = torch.load(kg_path)
+        # Load KG (weights_only=False needed for PyG Data objects)
+        self.kg_data = torch.load(kg_path, weights_only=False)
         
         # Load entity mappings
         with open(entity2id_path) as f:

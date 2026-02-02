@@ -21,10 +21,24 @@ import plotly.graph_objects as go
 import seaborn as sns
 import torch
 from pyvis.network import Network
-from torch_geometric.data import Data
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Simple Data class (avoids PyG dependency for macOS compatibility)
+class Data:
+    """Simple data container for knowledge graph"""
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+    
+    @property
+    def num_nodes(self):
+        if hasattr(self, 'x') and self.x is not None:
+            return self.x.size(0)
+        elif hasattr(self, 'edge_index') and self.edge_index is not None:
+            return int(self.edge_index.max()) + 1
+        return 0
 
 
 def visualize_kg_interactive(
@@ -52,8 +66,8 @@ def visualize_kg_interactive(
     """
     logger.info(f"Loading KG from {kg_path}...")
     
-    # Load KG
-    kg_data = torch.load(kg_path)
+    # Load KG (weights_only=False needed for PyG Data objects)
+    kg_data = torch.load(kg_path, weights_only=False)
     
     # Load entity mappings
     with open(entity2id_path) as f:
@@ -154,8 +168,8 @@ def visualize_subgraph(
     """
     logger.info(f"Extracting {hops}-hop subgraph around '{center_entity}'...")
     
-    # Load KG
-    kg_data = torch.load(kg_path)
+    # Load KG (weights_only=False needed for PyG Data objects)
+    kg_data = torch.load(kg_path, weights_only=False)
     
     # Load entity mappings
     with open(entity2id_path) as f:
@@ -275,8 +289,8 @@ def create_kg_dashboard(
     """
     logger.info("Creating KG dashboard...")
     
-    # Load KG
-    kg_data = torch.load(kg_path)
+    # Load KG (weights_only=False needed for PyG Data objects)
+    kg_data = torch.load(kg_path, weights_only=False)
     
     # Load entity mappings
     with open(entity2id_path) as f:

@@ -14,16 +14,39 @@ import json
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
 import networkx as nx
 import numpy as np
 import torch
-from torch_geometric.data import Data
 from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Simple Data class that doesn't depend on PyG (macOS compatibility fix)
+class Data:
+    """Simple data container for knowledge graph (PyG-compatible but doesn't require PyG)"""
+    def __init__(self, **kwargs):
+        # Store num_nodes separately if provided, since it's a property
+        self._num_nodes = kwargs.pop('num_nodes', None)
+        
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+    
+    @property
+    def num_nodes(self):
+        # If explicitly set, use that
+        if self._num_nodes is not None:
+            return self._num_nodes
+        # Otherwise compute from data
+        if hasattr(self, 'x') and self.x is not None:
+            return self.x.size(0)
+        elif hasattr(self, 'edge_index') and self.edge_index is not None:
+            return int(self.edge_index.max()) + 1
+        elif hasattr(self, 'num_entities'):
+            return self.num_entities
+        return 0
 
 
 class BiologicalKGBuilder:
