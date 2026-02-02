@@ -1,6 +1,5 @@
 # Python
 __pycache__/
-data/
 *.py[cod]
 *$py.class
 *.so
@@ -49,7 +48,6 @@ data/embeddings/
 
 # Models
 checkpoints/
-models/
 outputs/
 *.bin
 *.ckpt
