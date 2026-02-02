@@ -77,6 +77,7 @@ This allows the LLM to "understand" biological relationships learned from struct
 
 ```bash
 # Clone repository
+git clone https://github.com/harshmunshi/biokg_lora.git
 cd biokg-lora
 
 # Install with uv (fast!)
@@ -87,6 +88,67 @@ uv pip install -e .
 # Or with pip
 pip install -e .
 ```
+
+### Data Files (Important!)
+
+**⚠️ Large data files are NOT included in the git repository.** They are excluded via `.gitignore` to keep the repository lightweight.
+
+The following data files need to be downloaded or generated separately:
+
+```bash
+data/
+├── kg/
+│   ├── biological_kg.pt           # 109 MB - Generated in Stage 0
+│   ├── entity2id.json
+│   ├── entity_metadata.json
+│   ├── id2entity.json
+│   └── kg_stats.json
+├── mgi/
+│   ├── MGI_PhenoGenoMP.rpt       # 51 MB - Downloaded from MGI
+│   └── MRK_List2.rpt             # 75 MB - Downloaded from MGI
+├── ontologies/
+│   ├── go.obo                    # Downloaded from Gene Ontology
+│   ├── mgi_go.gaf                # 148 MB - Downloaded from MGI
+│   └── mpo.obo                   # Downloaded from MGI
+└── string/
+    ├── 10090.protein.info.v12.0.txt   # Downloaded from STRING DB
+    └── 10090.protein.links.v12.0.txt  # 653 MB - Downloaded from STRING DB
+```
+
+#### Option 1: Generate from Scratch (Recommended)
+
+Run the full pipeline to build the knowledge graph:
+
+```bash
+# Stage 0: Download data and build KG (1-2 days, CPU)
+python scripts/stage0_build_kg.py
+
+# Stage 1: Train RotatE embeddings (2-3 days, 1 GPU)
+python scripts/stage1_train_rotate.py
+```
+
+#### Option 2: Download Pre-built Data
+
+If available, download pre-built data files from a separate storage location (not included in git):
+
+```bash
+# Contact maintainer for access to pre-built data
+# Or check releases for data archives
+wget <data-url> -O data.tar.gz
+tar -xzf data.tar.gz
+```
+
+#### Why aren't data files in git?
+
+Git and GitHub have file size limitations:
+- GitHub's recommended max: **50 MB** per file
+- GitHub's hard limit: **100 MB** per file
+- Our largest file: **653 MB** (STRING protein links)
+
+**Options for large file storage:**
+- Use Git LFS (Large File Storage) - separate quota system
+- Use cloud storage (S3, Google Drive, etc.)
+- Generate files locally following the pipeline
 
 ### Test with Dummy Data (2 minutes)
 
@@ -448,7 +510,7 @@ answer.visualize_paths(output="reasoning_paths.png")
 
 ```bash
 # 1. Clone
-git clone <repo>
+git clone https://github.com/harshmunshi/biokg_lora.git
 cd biokg-lora
 
 # 2. Install
@@ -465,6 +527,95 @@ python scripts/train_lora.py
 
 # 6. Interactive demo
 python scripts/demo.py
+```
+
+## 🔧 Advanced: Setting Up Git LFS (For Contributors)
+
+If you're forking this repository and want to track large data files with Git LFS:
+
+### Initial LFS Setup
+
+```bash
+# Install Git LFS (one-time)
+# macOS
+brew install git-lfs
+
+# Ubuntu/Debian
+sudo apt-get install git-lfs
+
+# Windows
+# Download from https://git-lfs.github.com/
+
+# Initialize LFS in your repo
+cd biokg-lora
+git lfs install
+```
+
+### Track Large Files with LFS
+
+```bash
+# Track specific large data files
+git lfs track "data/kg/*.pt"
+git lfs track "data/mgi/*.rpt"
+git lfs track "data/ontologies/*.gaf"
+git lfs track "data/string/*.txt"
+
+# Commit the .gitattributes file
+git add .gitattributes
+git commit -m "chore: configure Git LFS for large data files"
+```
+
+### Push with LFS
+
+```bash
+# Add large files
+git add data/
+
+# Commit
+git commit -m "feat: add biological knowledge graph data"
+
+# Push (LFS handles large files automatically)
+git push origin main
+```
+
+### Clone Repository with LFS
+
+When others clone your fork:
+
+```bash
+# Clone repository (automatically downloads LFS files)
+git clone https://github.com/YOUR_USERNAME/biokg_lora.git
+cd biokg-lora
+
+# If LFS files weren't downloaded automatically
+git lfs pull
+```
+
+### LFS Storage Limits
+
+**GitHub LFS Free Tier:**
+- Storage: 1 GB free
+- Bandwidth: 1 GB/month free
+- After that: $5/month per 50GB data pack
+
+**Current data size:** ~1 GB total
+
+**Alternative:** Use cloud storage (S3, Google Drive) and provide download scripts instead of LFS.
+
+### Troubleshooting LFS
+
+```bash
+# Check LFS status
+git lfs status
+
+# List tracked files
+git lfs ls-files
+
+# Verify LFS is working
+git lfs env
+
+# If you get certificate errors on push:
+git config lfs.https://github.com/YOUR_USERNAME/biokg_lora.git/info/lfs.locksverify false
 ```
 
 ---
