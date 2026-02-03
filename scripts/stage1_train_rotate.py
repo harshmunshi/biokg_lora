@@ -66,7 +66,13 @@ def evaluate_link_prediction(model, dataloader, device, k_list=[1, 3, 10]):
             
             for i in range(len(head)):
                 true_tail = tail[i].item()
-                rank = (sorted_indices[i] == true_tail).nonzero(as_tuple=True)[0].item() + 1
+                # Find rank of true entity
+                matches = (sorted_indices[i] == true_tail).nonzero(as_tuple=True)[0]
+                if len(matches) > 0:
+                    rank = matches[0].item() + 1
+                else:
+                    # Edge case: true entity not found (shouldn't happen but handle gracefully)
+                    rank = num_entities  # Worst possible rank
                 ranks.append(rank)
     
     ranks = torch.tensor(ranks, dtype=torch.float)
