@@ -320,7 +320,7 @@ def main():
     parser.add_argument("--weight_decay", type=float, default=0.0, help="Weight decay")
     parser.add_argument("--num_epochs", type=int, default=500, help="Number of epochs")
     
-    parser.add_argument("--val_every_n_epochs", type=int, default=10, help="Validation frequency")
+    parser.add_argument("--val_every_n_epochs", type=int, default=1, help="Validation frequency")
     parser.add_argument("--save_every_n_epochs", type=int, default=50, help="Checkpoint save frequency")
     parser.add_argument("--num_workers", type=int, default=8, help="DataLoader workers (8-16 recommended)")
     parser.add_argument("--use_amp", action="store_true", default=True, help="Use mixed precision training")
