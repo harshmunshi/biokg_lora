@@ -51,5 +51,5 @@ services:
       --batch_size 1024
       --embedding_dim 256
       --learning_rate 0.0001
-      --num_workers 4
+      --num_workers 8
       "

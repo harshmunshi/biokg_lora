@@ -99,6 +99,14 @@ def train(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
     
+    # Enable performance optimizations for Ampere+ GPUs (A100, RTX 30/40 series)
+    if torch.cuda.is_available():
+        # Enable TF32 for faster matmul on Ampere+ GPUs
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+        torch.set_float32_matmul_precision("high")
+        logger.info("✓ Enabled TF32 precision for faster training on Ampere+ GPUs")
+    
     # Load datasets
     logger.info("\nLoading datasets...")
     train_dataset = KGDataset(
@@ -115,12 +123,15 @@ def train(args):
         neg_sample_size=args.neg_sample_size,
     )
     
+    # DataLoader with performance optimizations
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
         num_workers=args.num_workers,
         collate_fn=collate_kg_batch,
+        pin_memory=True,  # Faster GPU transfer
+        persistent_workers=True if args.num_workers > 0 else False,  # Avoid worker respawning
     )
     
     val_loader = DataLoader(
@@ -129,6 +140,8 @@ def train(args):
         shuffle=False,
         num_workers=args.num_workers,
         collate_fn=collate_kg_batch,
+        pin_memory=True,
+        persistent_workers=True if args.num_workers > 0 else False,
     )
     
     logger.info(f"Train samples: {len(train_dataset)}")
@@ -159,6 +172,12 @@ def train(args):
         patience=5,
     )
     
+    # Mixed precision training for faster GPU computation
+    use_amp = torch.cuda.is_available() and args.use_amp
+    scaler = torch.cuda.amp.GradScaler() if use_amp else None
+    if use_amp:
+        logger.info("✓ Enabled mixed precision training (AMP) for 1.3-1.8× speedup")
+    
     # Training loop
     logger.info(f"\nTraining for {args.num_epochs} epochs...")
     
@@ -173,24 +192,44 @@ def train(args):
         
         pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{args.num_epochs}")
         for batch in pbar:
-            batch = {k: v.to(device) if isinstance(v, torch.Tensor) else v 
+            batch = {k: v.to(device, non_blocking=True) if isinstance(v, torch.Tensor) else v 
                     for k, v in batch.items()}
             
-            # Forward
-            positive_sample = (batch["head"], batch["relation"], batch["tail"])
-            loss, metrics = rotate_loss(
-                model,
-                positive_sample,
-                batch["negative_sample"],
-                mode=batch["mode"],
-                alpha=args.adversarial_temp,
-            )
-            
-            # Backward
-            optimizer.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
+            # Forward with mixed precision
+            if use_amp:
+                with torch.cuda.amp.autocast():
+                    positive_sample = (batch["head"], batch["relation"], batch["tail"])
+                    loss, metrics = rotate_loss(
+                        model,
+                        positive_sample,
+                        batch["negative_sample"],
+                        mode=batch["mode"],
+                        alpha=args.adversarial_temp,
+                    )
+                
+                # Backward with gradient scaling
+                optimizer.zero_grad()
+                scaler.scale(loss).backward()
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                # Standard training (no AMP)
+                positive_sample = (batch["head"], batch["relation"], batch["tail"])
+                loss, metrics = rotate_loss(
+                    model,
+                    positive_sample,
+                    batch["negative_sample"],
+                    mode=batch["mode"],
+                    alpha=args.adversarial_temp,
+                )
+                
+                # Backward
+                optimizer.zero_grad()
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                optimizer.step()
             
             total_loss += loss.item()
             num_batches += 1
@@ -283,7 +322,9 @@ def main():
     
     parser.add_argument("--val_every_n_epochs", type=int, default=10, help="Validation frequency")
     parser.add_argument("--save_every_n_epochs", type=int, default=50, help="Checkpoint save frequency")
-    parser.add_argument("--num_workers", type=int, default=4, help="DataLoader workers")
+    parser.add_argument("--num_workers", type=int, default=8, help="DataLoader workers (8-16 recommended)")
+    parser.add_argument("--use_amp", action="store_true", default=True, help="Use mixed precision training")
+    parser.add_argument("--no_amp", action="store_false", dest="use_amp", help="Disable mixed precision")
     
     args = parser.parse_args()
     
