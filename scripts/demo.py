@@ -158,9 +158,16 @@ class BioKGLoRADemo:
         kg_dim = self.entity_embeddings.shape[1]
         lm_dim = self.model.config.hidden_size
         self.kg_projection = KGProjectionLayer(kg_dim=kg_dim, lm_dim=lm_dim)
-        self.kg_projection.load_state_dict(
-            torch.load(model_dir / "projection_layer.pt", weights_only=True)
-        )
+        
+        proj_path = model_dir / "projection_layer.pt"
+        if proj_path.exists():
+            self.kg_projection.load_state_dict(
+                torch.load(proj_path, weights_only=True)
+            )
+            logger.info("  ✓ Loaded trained projection layer")
+        else:
+            logger.warning(f"  ⚠ No projection layer found at {proj_path}, using random initialization")
+        
         self.kg_projection = self.kg_projection.to(self.device)
         self.kg_projection.eval()
         

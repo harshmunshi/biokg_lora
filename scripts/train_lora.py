@@ -190,7 +190,6 @@ class BioKGLoRA(nn.Module):
         # Projection layer
         kg_dim = entity_embeddings.shape[1]
         lm_dim = self.base_model.config.hidden_size
-        logger.info(f"Creating projection layer: {kg_dim} → {lm_dim}")
         self.kg_projection = KGProjectionLayer(kg_dim=kg_dim, lm_dim=lm_dim)
         
         # Add LoRA
@@ -346,6 +345,8 @@ def main():
                        help="Path to entity2id.json")
     parser.add_argument("--qa_dataset", type=str, required=True,
                        help="Path to QA dataset JSON")
+    parser.add_argument("--projection_layer", type=str, default=None,
+                       help="Path to pre-trained projection layer from Stage 2 (optional)")
     
     # LoRA
     parser.add_argument("--lora_rank", type=int, default=32,
@@ -453,6 +454,14 @@ def main():
         kg_weight=args.kg_weight,
         use_4bit=args.use_4bit
     )
+    
+    # Load pre-trained projection layer if provided
+    if args.projection_layer:
+        logger.info(f"Loading pre-trained projection layer from {args.projection_layer}")
+        model.kg_projection.load_state_dict(
+            torch.load(args.projection_layer, weights_only=True)
+        )
+        logger.info("  ✓ Pre-trained projection layer loaded!")
     
     # Optimizer
     optimizer = torch.optim.AdamW(
